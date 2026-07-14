@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MELBOL Story Planner v3.2</title>
+    <title>MELBOL Story Planner v3.3</title>
     <style>
         :root {
             --bg-color: #121214;
@@ -241,6 +241,91 @@
             margin-top: 10px;
         }
 
+        /* Dynamic Characters Tabs Container (Scrollable) */
+        .char-tabs-outer {
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+            gap: 10px;
+            padding-bottom: 5px;
+        }
+
+        .char-tabs-scroll {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            flex-grow: 1;
+            scrollbar-width: thin; /* Firefox */
+        }
+
+        /* Webkit Scrollbar Styling for Scrollable Tabs */
+        .char-tabs-scroll::-webkit-scrollbar {
+            height: 5px;
+        }
+        .char-tabs-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .char-tabs-scroll::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        .char-tab-btn {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 8px 16px;
+            border-radius: 6px 6px 0 0;
+            cursor: pointer;
+            font-weight: bold;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .char-tab-btn.active {
+            background: var(--border-color);
+            color: var(--accent-color);
+            border-bottom-color: var(--accent-color);
+        }
+
+        .char-tab-btn:hover {
+            color: var(--text-color);
+        }
+
+        .tab-close-x {
+            color: var(--danger-color);
+            cursor: pointer;
+            font-weight: normal;
+            font-size: 0.8rem;
+        }
+
+        .tab-close-x:hover {
+            font-weight: bold;
+        }
+
+        .add-tab-btn {
+            background: var(--panel-bg);
+            border: 1px dashed var(--accent-color);
+            color: var(--accent-color);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1rem;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .add-tab-btn:hover {
+            background: var(--border-color);
+        }
+
         /* Pagination Control styling */
         .pagination {
             display: flex;
@@ -459,7 +544,18 @@
 
         <div id="section-characters" class="section-panel">
             <h2>Characters</h2>
-            <button class="primary-btn" onclick="addCharacter()">Add Character</button>
+            
+            <div class="char-tabs-outer">
+                <div id="char-tabs-scrollable" class="char-tabs-scroll">
+                    </div>
+                <button class="add-tab-btn" onclick="addCharTab()" title="Add custom group page">+</button>
+            </div>
+
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: -10px; margin-bottom: 20px;">
+                💡 *Tip: Double-click any tab above to rename it!*
+            </p>
+
+            <button class="primary-btn" onclick="addCharacter()">Add Character to Group</button>
             <div id="characters-list" class="grid-3"></div>
         </div>
 
@@ -608,6 +704,14 @@
                     if (!story.sketches) {
                         story.sketches = Array.from({ length: 10 }, () => []);
                     }
+                    // Safe Character group page schema upgrade
+                    if (!story.charPages || story.charPages.length === 0) {
+                        story.charPages = [{ name: "Page 1", characters: story.characters || [] }];
+                        delete story.characters;
+                    }
+                    if (story.activeCharPage === undefined) {
+                        story.activeCharPage = 0;
+                    }
                 });
                 saveData();
             } else {
@@ -616,7 +720,8 @@
                     genre: "Fantasy",
                     summary: "An epic adventure begins...",
                     cover: "",
-                    characters: [],
+                    charPages: [{ name: "Page 1", characters: [] }],
+                    activeCharPage: 0,
                     factions: [],
                     map: "",
                     arcs: [],
@@ -722,6 +827,13 @@
                                 if (!story.sketches) {
                                     story.sketches = Array.from({ length: 10 }, () => []);
                                 }
+                                if (!story.charPages || story.charPages.length === 0) {
+                                    story.charPages = [{ name: "Page 1", characters: story.characters || [] }];
+                                    delete story.characters;
+                                }
+                                if (story.activeCharPage === undefined) {
+                                    story.activeCharPage = 0;
+                                }
                             });
                             saveData();
                             populateStorySelect();
@@ -739,10 +851,80 @@
             fileInput.click();
         }
 
+        /* ------------------ CHAR PAGES TABS LOGIC ------------------ */
+        function renderCharTabs() {
+            const container = document.getElementById('char-tabs-scrollable');
+            container.innerHTML = '';
+            const story = getActiveStory();
+            if (!story || !story.charPages) return;
+
+            story.charPages.forEach((page, idx) => {
+                const tab = document.createElement('div');
+                tab.className = `char-tab-btn ${story.activeCharPage === idx ? 'active' : ''}`;
+                tab.title = "Double-click to rename this group!";
+                
+                // Switch tab on single click
+                tab.onclick = (e) => {
+                    if (e.target.classList.contains('tab-close-x')) return; // ignore if clicking delete
+                    story.activeCharPage = idx;
+                    saveData();
+                    renderCharTabs();
+                    renderCharacters();
+                };
+
+                // Rename on double click
+                tab.ondblclick = () => {
+                    const newName = prompt(`Rename group "${page.name}":`, page.name);
+                    if (newName && newName.trim() !== "") {
+                        page.name = newName.trim();
+                        saveData();
+                        renderCharTabs();
+                    }
+                };
+
+                tab.innerHTML = `
+                    <span>${page.name}</span>
+                    ${story.charPages.length > 1 ? `<span class="tab-close-x" onclick="deleteCharTab(${idx})">×</span>` : ''}
+                `;
+                container.appendChild(tab);
+            });
+        }
+
+        function addCharTab() {
+            const story = getActiveStory();
+            const newName = prompt("Enter a name for this new character group page:", `Page ${story.charPages.length + 1}`);
+            if (!newName) return;
+            
+            story.charPages.push({
+                name: newName.trim(),
+                characters: []
+            });
+            story.activeCharPage = story.charPages.length - 1;
+            saveData();
+            renderCharTabs();
+            renderCharacters();
+        }
+
+        function deleteCharTab(idx) {
+            const story = getActiveStory();
+            if (story.charPages.length <= 1) return;
+            
+            if (confirm(`Are you sure you want to delete the group "${story.charPages[idx].name}" and all of its characters?`)) {
+                story.charPages.splice(idx, 1);
+                story.activeCharPage = 0;
+                saveData();
+                renderCharTabs();
+                renderCharacters();
+            }
+        }
+
         /* ------------------ CHARACTER MODAL ------------------ */
         function openCharModal(idx) {
             currentCharacterIdx = idx;
-            const char = getActiveStory().characters[idx];
+            const story = getActiveStory();
+            const activePage = story.charPages[story.activeCharPage];
+            const char = activePage.characters[idx];
+            
             document.getElementById('modal-char-name').textContent = char.name || "Unnamed Character";
             
             const imgPrev = document.getElementById('modal-char-image-preview');
@@ -752,7 +934,6 @@
                 imgPrev.innerHTML = `<p style="color: var(--text-muted)">No Image</p>`;
             }
 
-            // Expanded input field mapper with the new height and physical feature fields
             const fields = ['full_name', 'age', 'gender', 'height', 'features', 'motivation', 'fear', 'habits', 'quirks', 'backstory', 'relationships', 'powers', 'speech'];
             fields.forEach(field => {
                 document.getElementById(`araki-${field.replace('_','-')}`).value = char[field] || '';
@@ -771,14 +952,18 @@
 
         function updateCharData(field, value) {
             if (currentCharacterIdx === null) return;
-            getActiveStory().characters[currentCharacterIdx][field] = value;
+            const story = getActiveStory();
+            const activePage = story.charPages[story.activeCharPage];
+            activePage.characters[currentCharacterIdx][field] = value;
             saveData();
         }
 
         function updateCharImgModal(event) {
             handleImageUpload(event, (base64Img) => {
                 if (currentCharacterIdx === null) return;
-                getActiveStory().characters[currentCharacterIdx].img = base64Img;
+                const story = getActiveStory();
+                const activePage = story.charPages[story.activeCharPage];
+                activePage.characters[currentCharacterIdx].img = base64Img;
                 saveData();
                 openCharModal(currentCharacterIdx);
             });
@@ -786,8 +971,10 @@
 
         function deleteCurrentCharacter() {
             if (currentCharacterIdx === null) return;
+            const story = getActiveStory();
+            const activePage = story.charPages[story.activeCharPage];
             if (confirm("Are you sure you want to delete this character?")) {
-                getActiveStory().characters.splice(currentCharacterIdx, 1);
+                activePage.characters.splice(currentCharacterIdx, 1);
                 saveData();
                 closeCharModal();
             }
@@ -809,6 +996,7 @@
 
         function renderAll() {
             renderStories();
+            renderCharTabs();
             renderCharacters();
             renderWorldbuilding();
             renderChapters();
@@ -849,7 +1037,9 @@
             
             appData.stories.push({
                 title, genre, summary, cover: "",
-                characters: [], factions: [], map: "", arcs: [], timeline: [], themes: [], ideas: [],
+                charPages: [{ name: "Page 1", characters: [] }],
+                activeCharPage: 0,
+                factions: [], map: "", arcs: [], timeline: [], themes: [], ideas: [],
                 sketches: Array.from({ length: 10 }, () => [])
             });
             saveData();
@@ -884,9 +1074,12 @@
             const list = document.getElementById('characters-list');
             list.innerHTML = '';
             const story = getActiveStory();
-            if (!story) return;
+            if (!story || !story.charPages) return;
 
-            story.characters.forEach((char, idx) => {
+            const activePage = story.charPages[story.activeCharPage || 0];
+            if (!activePage || !activePage.characters) return;
+
+            activePage.characters.forEach((char, idx) => {
                 const card = document.createElement('div');
                 card.className = "card";
                 card.innerHTML = `
@@ -901,9 +1094,10 @@
 
         function addCharacter() {
             const story = getActiveStory();
-            const name = prompt("Character Name:");
+            const activePage = story.charPages[story.activeCharPage];
+            const name = prompt(`Character Name (adding to ${activePage.name}):`);
             if (!name) return;
-            story.characters.push({ name, role: 'Side Character', img: '', quirks: '', habits: '', backstory: '', height: '', features: '' });
+            activePage.characters.push({ name, role: 'Side Character', img: '', quirks: '', habits: '', backstory: '', height: '', features: '' });
             saveData();
             renderCharacters();
         }
