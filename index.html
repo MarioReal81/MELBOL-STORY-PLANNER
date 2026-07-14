@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MELBOL Story Planner v2</title>
+    <title>MELBOL Story Planner v3</title>
     <style>
         :root {
             --bg-color: #121214;
@@ -39,16 +39,25 @@
             display: flex;
             flex-direction: column;
             padding: 20px;
+            justify-content: space-between;
         }
 
         .logo {
             font-size: 1.5rem;
             font-weight: bold;
             color: var(--accent-color);
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             text-align: center;
             border-bottom: 2px solid var(--border-color);
             padding-bottom: 15px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            overflow-y: auto;
+            margin-bottom: 15px;
         }
 
         .nav-btn {
@@ -56,17 +65,40 @@
             border: none;
             color: var(--text-muted);
             text-align: left;
-            padding: 12px 15px;
-            font-size: 1rem;
+            padding: 10px 15px;
+            font-size: 0.95rem;
             cursor: pointer;
             border-radius: 6px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             transition: all 0.2s;
         }
 
         .nav-btn:hover, .nav-btn.active {
             background-color: var(--border-color);
             color: var(--accent-color);
+        }
+
+        .backup-controls {
+            border-top: 1px solid var(--border-color);
+            padding-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .backup-btn {
+            flex: 1;
+            background: #25252b;
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            padding: 6px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+
+        .backup-btn:hover {
+            color: var(--accent-color);
+            border-color: var(--accent-color);
         }
 
         /* Main Content Area */
@@ -126,7 +158,6 @@
             opacity: 0.9;
         }
 
-        /* Form elements */
         input, select, textarea {
             width: 100%;
             background-color: var(--panel-bg);
@@ -137,7 +168,6 @@
             margin-bottom: 15px;
         }
 
-        /* Grid Systems */
         .grid-3 {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -160,6 +190,20 @@
             margin-bottom: 12px;
         }
 
+        /* Collapsible image for Sketches */
+        .sketch-image-wrapper {
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+            overflow: hidden;
+            max-height: 300px;
+            opacity: 1;
+        }
+
+        .sketch-image-wrapper.collapsed {
+            max-height: 0;
+            opacity: 0;
+            margin: 0;
+        }
+
         .delete-btn {
             background: var(--danger-color);
             color: white;
@@ -169,6 +213,30 @@
             cursor: pointer;
             font-size: 0.8rem;
             margin-top: 10px;
+        }
+
+        /* Pagination Control styling */
+        .pagination {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+
+        .page-btn {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .page-btn.active {
+            background: var(--accent-color);
+            color: #000;
+            font-weight: bold;
         }
 
         /* Physical Timeline Styles */
@@ -320,14 +388,24 @@
 <body>
 
     <div id="sidebar">
-        <div class="logo">MELBOL Planner v2</div>
-        <button class="nav-btn active" onclick="switchSection('story')">1. Stories</button>
-        <button class="nav-btn" onclick="switchSection('characters')">2. Characters</button>
-        <button class="nav-btn" onclick="switchSection('worldbuilding')">3. Worldbuilding</button>
-        <button class="nav-btn" onclick="switchSection('chapters')">4. Chapters & Arcs</button>
-        <button class="nav-btn" onclick="switchSection('timeline')">5. Timeline</button>
-        <button class="nav-btn" onclick="switchSection('themes')">6. Themes</button>
-        <button class="nav-btn" onclick="switchSection('ideas')">7. Ideas</button>
+        <div>
+            <div class="logo">MELBOL Planner v3</div>
+            <div class="nav-buttons">
+                <button class="nav-btn active" onclick="switchSection('story')">1. Stories</button>
+                <button class="nav-btn" onclick="switchSection('characters')">2. Characters</button>
+                <button class="nav-btn" onclick="switchSection('worldbuilding')">3. Worldbuilding</button>
+                <button class="nav-btn" onclick="switchSection('chapters')">4. Chapters & Arcs</button>
+                <button class="nav-btn" onclick="switchSection('timeline')">5. Timeline</button>
+                <button class="nav-btn" onclick="switchSection('themes')">6. Themes</button>
+                <button class="nav-btn" onclick="switchSection('ideas')">7. Ideas</button>
+                <button class="nav-btn" onclick="switchSection('sketches')">8. Sketches</button>
+            </div>
+        </div>
+
+        <div class="backup-controls">
+            <button class="backup-btn" onclick="exportData()">Export Backup</button>
+            <button class="backup-btn" onclick="importData()">Import Backup</button>
+        </div>
     </div>
 
     <div id="main-content">
@@ -354,7 +432,6 @@
 
         <div id="section-worldbuilding" class="section-panel">
             <h2>Worldbuilding</h2>
-            
             <h3>Map & Geography</h3>
             <input type="file" id="map-upload" accept="image/*" onchange="uploadMap(event)">
             <div id="map-preview" style="margin: 15px 0;"></div>
@@ -375,8 +452,7 @@
             <h2>Physical Story Timeline</h2>
             <p style="color: var(--text-muted);">View historic events and major arc starts. Markers are ordered sequentially.</p>
             <button class="primary-btn" onclick="addTimelineEvent()">Add Historic Event</button>
-            <div id="physical-timeline-container" class="timeline-wrapper">
-                </div>
+            <div id="physical-timeline-container" class="timeline-wrapper"></div>
         </div>
 
         <div id="section-themes" class="section-panel">
@@ -389,6 +465,16 @@
             <h2>Scrapbook of Ideas</h2>
             <button class="primary-btn" onclick="addIdea()">Jot Down an Idea</button>
             <div id="ideas-list" class="grid-3"></div>
+        </div>
+
+        <div id="section-sketches" class="section-panel">
+            <h2>Visual Sketches & Board</h2>
+            <p style="color: var(--text-muted); margin-bottom: 15px;">Up to 10 pages, holding up to 12 sketches each. Click on a sketch's name to collapse/expand the image preview!</p>
+            
+            <div id="sketches-pagination" class="pagination"></div>
+
+            <button class="primary-btn" onclick="addSketch()">Upload Sketch to Page</button>
+            <div id="sketches-list" class="grid-3"></div>
         </div>
     </div>
 
@@ -428,7 +514,6 @@
                     <label>Deepest Fear</label>
                     <input type="text" id="araki-fear" onchange="updateCharData('fear', this.value)">
                 </div>
-                
                 <div class="araki-field">
                     <label>Habits (Araki 100 Questions Item)</label>
                     <textarea id="araki-habits" onchange="updateCharData('habits', this.value)"></textarea>
@@ -467,12 +552,27 @@
         };
 
         let currentCharacterIdx = null; // Track character in modal
+        let currentSketchesPage = 0;   // Track active Sketches page (0 to 9)
 
-        // Load data from localStorage
+        // Load data from localStorage safely
         function loadData() {
-            const saved = localStorage.getItem('melbol_story_planner_data_v2');
-            if (saved) {
-                appData = JSON.parse(saved);
+            // Check original, secondary, and v3 namespaces to prevent data loss
+            const savedV3 = localStorage.getItem('melbol_story_planner_data_v3');
+            const savedV2 = localStorage.getItem('melbol_story_planner_data_v2');
+            const savedV1 = localStorage.getItem('melbol_story_planner_data');
+            
+            const rawData = savedV3 || savedV2 || savedV1;
+
+            if (rawData) {
+                appData = JSON.parse(rawData);
+                // Make sure every story has the new sketches array structured correctly
+                appData.stories.forEach(story => {
+                    if (!story.sketches) {
+                        // Create 10 pages, each is an array of sketches (max 12 elements)
+                        story.sketches = Array.from({ length: 10 }, () => []);
+                    }
+                });
+                saveData();
             } else {
                 appData.stories = [{
                     title: "My First Story",
@@ -485,7 +585,8 @@
                     arcs: [],
                     timeline: [],
                     themes: [],
-                    ideas: []
+                    ideas: [],
+                    sketches: Array.from({ length: 10 }, () => [])
                 }];
                 saveData();
             }
@@ -494,7 +595,7 @@
         }
 
         function saveData() {
-            localStorage.setItem('melbol_story_planner_data_v2', JSON.stringify(appData));
+            localStorage.setItem('melbol_story_planner_data_v3', JSON.stringify(appData));
         }
 
         function getActiveStory() {
@@ -539,13 +640,59 @@
             if (file) reader.readAsDataURL(file);
         }
 
-        /* ------------------ MODAL LOGIC ------------------ */
+        /* ------------------ SAFE DATA EXPORT & IMPORT ------------------ */
+        function exportData() {
+            const dataStr = JSON.stringify(appData);
+            const blob = new Blob([dataStr], {type: "application/json"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `melbol_planner_backup_${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function importData() {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.json';
+            fileInput.onchange = e => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = readerEvent => {
+                    try {
+                        const parsed = JSON.parse(readerEvent.target.result);
+                        if (parsed && parsed.stories) {
+                            appData = parsed;
+                            // Enforce sketches structural integrity
+                            appData.stories.forEach(story => {
+                                if (!story.sketches) {
+                                    story.sketches = Array.from({ length: 10 }, () => []);
+                                }
+                            });
+                            saveData();
+                            populateStorySelect();
+                            renderAll();
+                            alert("Data successfully imported!");
+                        } else {
+                            alert("Invalid data format.");
+                        }
+                    } catch (err) {
+                        alert("Failed to parse JSON backup file.");
+                    }
+                }
+                reader.readAsText(file);
+            }
+            fileInput.click();
+        }
+
+        /* ------------------ CHARACTER MODAL ------------------ */
         function openCharModal(idx) {
             currentCharacterIdx = idx;
             const char = getActiveStory().characters[idx];
             document.getElementById('modal-char-name').textContent = char.name || "Unnamed Character";
             
-            // Set image preview
             const imgPrev = document.getElementById('modal-char-image-preview');
             if (char.img) {
                 imgPrev.innerHTML = `<img src="${char.img}" style="max-width: 100%; height: 200px; object-fit: cover; border-radius: 8px;">`;
@@ -553,7 +700,6 @@
                 imgPrev.innerHTML = `<p style="color: var(--text-muted)">No Image</p>`;
             }
 
-            // Populate all Araki fields (handling missing fields dynamically)
             const fields = ['full_name', 'age', 'gender', 'motivation', 'fear', 'habits', 'quirks', 'backstory', 'relationships', 'powers', 'speech'];
             fields.forEach(field => {
                 document.getElementById(`araki-${field.replace('_','-')}`).value = char[field] || '';
@@ -567,7 +713,7 @@
         function closeCharModal() {
             document.getElementById('char-planner-modal').classList.remove('active');
             currentCharacterIdx = null;
-            renderCharacters(); // Refresh main list
+            renderCharacters();
         }
 
         function updateCharData(field, value) {
@@ -581,7 +727,7 @@
                 if (currentCharacterIdx === null) return;
                 getActiveStory().characters[currentCharacterIdx].img = base64Img;
                 saveData();
-                openCharModal(currentCharacterIdx); // Re-open to refresh preview
+                openCharModal(currentCharacterIdx);
             });
         }
 
@@ -594,10 +740,16 @@
             }
         }
 
-        /* ------------------ COLLAPSIBLE LOGIC (Arcs) ------------------ */
+        /* ------------------ ARCS & CHAPTERS COLLAPSIBLE ------------------ */
         function toggleArcChapters(idx) {
             const content = document.getElementById(`arc-${idx}-chapters-content`);
             content.classList.toggle('active');
+        }
+
+        /* ------------------ SKETCHES TOGGLE PREVIEW ------------------ */
+        function toggleSketchPreview(sketchId) {
+            const wrapper = document.getElementById(`sketch-img-wrap-${sketchId}`);
+            wrapper.classList.toggle('collapsed');
         }
 
         /* ------------------ SECTION RENDERING ------------------ */
@@ -610,9 +762,10 @@
             renderTimeline();
             renderThemes();
             renderIdeas();
+            renderSketches();
         }
 
-        // 1. Stories (UNCHANGED)
+        // 1. Stories
         function renderStories() {
             const list = document.getElementById('stories-list');
             list.innerHTML = '';
@@ -643,7 +796,8 @@
             
             appData.stories.push({
                 title, genre, summary, cover: "",
-                characters: [], factions: [], map: "", arcs: [], timeline: [], themes: [], ideas: []
+                characters: [], factions: [], map: "", arcs: [], timeline: [], themes: [], ideas: [],
+                sketches: Array.from({ length: 10 }, () => [])
             });
             saveData();
             populateStorySelect();
@@ -672,7 +826,7 @@
             }
         }
 
-        // 2. Characters (NEW MAIN VIEW)
+        // 2. Characters
         function renderCharacters() {
             const list = document.getElementById('characters-list');
             list.innerHTML = '';
@@ -696,13 +850,12 @@
             const story = getActiveStory();
             const name = prompt("Character Name:");
             if (!name) return;
-            // Basic structure, detailed planner adds the rest
             story.characters.push({ name, role: 'Side Character', img: '', quirks: '', habits: '', backstory: '' });
             saveData();
             renderCharacters();
         }
 
-        // 3. Worldbuilding (UNCHANGED)
+        // 3. Worldbuilding
         function renderWorldbuilding() {
             const story = getActiveStory();
             if (!story) return;
@@ -757,7 +910,7 @@
             renderWorldbuilding();
         }
 
-        // 4. Chapters & Arcs (NEW COLLAPSIBLE AND EDITABLE)
+        // 4. Chapters & Arcs
         function renderChapters() {
             const list = document.getElementById('arcs-list');
             list.innerHTML = '';
@@ -782,8 +935,7 @@
                         <button class="delete-btn" style="margin: 0; padding: 5px 10px;" onclick="deleteArc(${arcIdx})">Delete Arc</button>
                     </div>
 
-                    <div id="arc-${arcIdx}-chapters-content" class="arc-chapters-content">
-                        </div>
+                    <div id="arc-${arcIdx}-chapters-content" class="arc-chapters-content"></div>
                 `;
                 list.appendChild(arcDiv);
 
@@ -816,7 +968,7 @@
             }
             const title = prompt("Arc Title:");
             if (!title) return;
-            const summary = prompt("Arc Summary (can be updated later):");
+            const summary = prompt("Arc Summary:");
 
             story.arcs.push({ title, summary, chapters: [] });
             saveData();
@@ -855,10 +1007,10 @@
             const chap = getActiveStory().arcs[arcIdx].chapters[chapIdx];
             const newTitle = prompt("Edit Chapter Title:", chap.title);
             if (!newTitle) return;
-            const newLink = prompt("Edit Google Doc Link (or leave blank to remove):", chap.link || '');
+            const newLink = prompt("Edit Google Doc Link:", chap.link || '');
             
             chap.title = newTitle;
-            chap.link = newLink; // Allow empty
+            chap.link = newLink;
             saveData();
             renderChapters();
         }
@@ -875,7 +1027,7 @@
             renderChapters();
         }
 
-        // 5. Physical Timeline (NEW PHYSICAL LAYOUT)
+        // 5. Physical Timeline
         function renderTimeline() {
             const container = document.getElementById('physical-timeline-container');
             container.innerHTML = '';
@@ -883,7 +1035,6 @@
             if (!story) return;
 
             const events = story.timeline || [];
-            // Sort events by order (sequential)
             events.sort((a,b) => a.order - b.order);
 
             if (events.length === 0) {
@@ -899,29 +1050,21 @@
             const stepPercent = numEvents > 1 ? (100 / (numEvents - 1)) : 0;
 
             events.forEach((event, idx) => {
-                // Calculate position based on relative order (for physical display)
-                let position;
-                if (numEvents === 1) {
-                    position = 50; // Center single event
-                } else {
-                    position = idx * stepPercent;
-                }
+                let position = numEvents === 1 ? 50 : idx * stepPercent;
 
                 const marker = document.createElement('div');
                 marker.className = 'timeline-marker';
                 marker.style.left = `${position}%`;
                 marker.innerHTML = `<span>${idx + 1}</span>`;
-                marker.title = `${event.title} (Order: ${event.order})`; // Tooltip
+                marker.title = `${event.title} (Order: ${event.order})`;
 
                 const label = document.createElement('div');
                 label.className = 'timeline-marker-label';
                 label.textContent = event.title;
                 marker.appendChild(label);
 
-                // Add physical marker to track
                 track.appendChild(marker);
 
-                // Add delete option separately under track for easier access
                 const deleteDiv = document.createElement('div');
                 deleteDiv.style.marginTop = "60px";
                 deleteDiv.style.borderTop = "1px solid var(--border-color)";
@@ -939,10 +1082,9 @@
             const title = prompt("Event Title:");
             if (!title) return;
             const desc = prompt("Event Description / Major Arc Milestone:");
-            // Simplified order for physical display
             const order = parseFloat(prompt("Sequence Order (1, 2, 2.5, 3...):") || "1");
 
-            if (!story.timeline) story.timeline = []; // Ensure it exists
+            if (!story.timeline) story.timeline = [];
             story.timeline.push({ title, desc, order });
             saveData();
             renderTimeline();
@@ -954,7 +1096,7 @@
             renderTimeline();
         }
 
-        // 6. Themes (UNCHANGED)
+        // 6. Themes
         function renderThemes() {
             const list = document.getElementById('themes-list');
             list.innerHTML = '';
@@ -977,7 +1119,7 @@
             const story = getActiveStory();
             const title = prompt("Theme Name:");
             if (!title) return;
-            const desc = prompt("Theme Description / how it fits the narrative:");
+            const desc = prompt("Theme Description:");
 
             story.themes.push({ title, desc });
             saveData();
@@ -990,7 +1132,7 @@
             renderThemes();
         }
 
-        // 7. Ideas (UNCHANGED)
+        // 7. Ideas
         function renderIdeas() {
             const list = document.getElementById('ideas-list');
             list.innerHTML = '';
@@ -1013,7 +1155,7 @@
             const story = getActiveStory();
             const title = prompt("Idea Headline:");
             if (!title) return;
-            const content = prompt("Describe your idea / character concept:");
+            const content = prompt("Describe your idea:");
 
             story.ideas.push({ title, content });
             saveData();
@@ -1024,6 +1166,89 @@
             getActiveStory().ideas.splice(idx, 1);
             saveData();
             renderIdeas();
+        }
+
+        // 8. Sketches (NEW)
+        function renderSketches() {
+            const story = getActiveStory();
+            if (!story) return;
+
+            // Render Pagination Buttons
+            const paginationDiv = document.getElementById('sketches-pagination');
+            paginationDiv.innerHTML = '';
+            for (let i = 0; i < 10; i++) {
+                const btn = document.createElement('button');
+                btn.className = `page-btn ${currentSketchesPage === i ? 'active' : ''}`;
+                btn.textContent = `Page ${i + 1}`;
+                btn.onclick = () => {
+                    currentSketchesPage = i;
+                    renderSketches();
+                };
+                paginationDiv.appendChild(btn);
+            }
+
+            const list = document.getElementById('sketches-list');
+            list.innerHTML = '';
+
+            // Get current page's sketches
+            const pageSketches = story.sketches[currentSketchesPage] || [];
+
+            pageSketches.forEach((sketch, idx) => {
+                const card = document.createElement('div');
+                card.className = "card";
+                // Unique HTML ID for toggling this specific card's image block
+                const elementId = `${currentSketchesPage}-${idx}`;
+                card.innerHTML = `
+                    <h3 style="cursor: pointer; color: var(--accent-color);" onclick="toggleSketchPreview('${elementId}')">
+                        ${sketch.title} ↔
+                    </h3>
+                    <div id="sketch-img-wrap-${elementId}" class="sketch-image-wrapper">
+                        ${sketch.img ? `<img src="${sketch.img}">` : '<p style="color:var(--text-muted); margin-bottom: 10px;">No Image Uploaded</p>'}
+                    </div>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 5px;">${sketch.summary}</p>
+                    <button class="delete-btn" onclick="deleteSketch(${idx})">Delete Sketch</button>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function addSketch() {
+            const story = getActiveStory();
+            const pageSketches = story.sketches[currentSketchesPage];
+
+            if (pageSketches.length >= 12) {
+                alert("You can only have up to 12 sketches on a single page!");
+                return;
+            }
+
+            const title = prompt("Enter Sketch Name:");
+            if (!title) return;
+            const summary = prompt("Enter a small summary:");
+
+            // Hidden file uploader trick
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = 'image/*';
+            fileInput.onchange = e => {
+                handleImageUpload(e, (base64Img) => {
+                    pageSketches.push({
+                        title: title,
+                        summary: summary,
+                        img: base64Img
+                    });
+                    saveData();
+                    renderSketches();
+                });
+            };
+            fileInput.click();
+        }
+
+        function deleteSketch(idx) {
+            if (confirm("Are you sure you want to delete this sketch?")) {
+                getActiveStory().sketches[currentSketchesPage].splice(idx, 1);
+                saveData();
+                renderSketches();
+            }
         }
 
         // Initialize App on load
