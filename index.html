@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MELBOL Story Planner v3</title>
+    <title>MELBOL Story Planner v3.1</title>
     <style>
         :root {
             --bg-color: #121214;
@@ -46,10 +46,36 @@
             font-size: 1.5rem;
             font-weight: bold;
             color: var(--accent-color);
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             text-align: center;
+        }
+
+        /* Manual Save Button Panel */
+        .save-container {
+            margin-bottom: 20px;
             border-bottom: 2px solid var(--border-color);
             padding-bottom: 15px;
+        }
+
+        .manual-save-btn {
+            width: 100%;
+            background-color: var(--success-color);
+            color: #000;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .manual-save-btn:hover {
+            opacity: 0.9;
         }
 
         .nav-buttons {
@@ -389,7 +415,14 @@
 
     <div id="sidebar">
         <div>
-            <div class="logo">MELBOL Planner v3</div>
+            <div class="logo">MELBOL Planner</div>
+            
+            <div class="save-container">
+                <button class="manual-save-btn" onclick="manualSave()">
+                    <span id="save-icon">💾</span> <span id="save-text">Save Progress</span>
+                </button>
+            </div>
+
             <div class="nav-buttons">
                 <button class="nav-btn active" onclick="switchSection('story')">1. Stories</button>
                 <button class="nav-btn" onclick="switchSection('characters')">2. Characters</button>
@@ -545,18 +578,16 @@
     </div>
 
     <script>
-        // Database template 
         let appData = {
             activeStoryIndex: 0,
             stories: []
         };
 
-        let currentCharacterIdx = null; // Track character in modal
-        let currentSketchesPage = 0;   // Track active Sketches page (0 to 9)
+        let currentCharacterIdx = null; 
+        let currentSketchesPage = 0;   
 
-        // Load data from localStorage safely
+        // Load data from localStorage safely across all previous namespaces
         function loadData() {
-            // Check original, secondary, and v3 namespaces to prevent data loss
             const savedV3 = localStorage.getItem('melbol_story_planner_data_v3');
             const savedV2 = localStorage.getItem('melbol_story_planner_data_v2');
             const savedV1 = localStorage.getItem('melbol_story_planner_data');
@@ -565,10 +596,8 @@
 
             if (rawData) {
                 appData = JSON.parse(rawData);
-                // Make sure every story has the new sketches array structured correctly
                 appData.stories.forEach(story => {
                     if (!story.sketches) {
-                        // Create 10 pages, each is an array of sketches (max 12 elements)
                         story.sketches = Array.from({ length: 10 }, () => []);
                     }
                 });
@@ -594,8 +623,28 @@
             renderAll();
         }
 
+        // Standard silent background save
         function saveData() {
             localStorage.setItem('melbol_story_planner_data_v3', JSON.stringify(appData));
+        }
+
+        // Manual Save Trigger with visual confirmation feedback
+        function manualSave() {
+            saveData();
+            const btn = document.querySelector('.manual-save-btn');
+            const icon = document.getElementById('save-icon');
+            const text = document.getElementById('save-text');
+
+            // Visual Success Feedback State
+            btn.style.backgroundColor = "var(--accent-color)";
+            icon.textContent = "✅";
+            text.textContent = "Saved!";
+
+            setTimeout(() => {
+                btn.style.backgroundColor = "var(--success-color)";
+                icon.textContent = "💾";
+                text.textContent = "Save Progress";
+            }, 1200);
         }
 
         function getActiveStory() {
@@ -665,7 +714,6 @@
                         const parsed = JSON.parse(readerEvent.target.result);
                         if (parsed && parsed.stories) {
                             appData = parsed;
-                            // Enforce sketches structural integrity
                             appData.stories.forEach(story => {
                                 if (!story.sketches) {
                                     story.sketches = Array.from({ length: 10 }, () => []);
@@ -1081,7 +1129,7 @@
             const story = getActiveStory();
             const title = prompt("Event Title:");
             if (!title) return;
-            const desc = prompt("Event Description / Major Arc Milestone:");
+            const desc = prompt("Event Description:");
             const order = parseFloat(prompt("Sequence Order (1, 2, 2.5, 3...):") || "1");
 
             if (!story.timeline) story.timeline = [];
@@ -1168,12 +1216,11 @@
             renderIdeas();
         }
 
-        // 8. Sketches (NEW)
+        // 8. Sketches
         function renderSketches() {
             const story = getActiveStory();
             if (!story) return;
 
-            // Render Pagination Buttons
             const paginationDiv = document.getElementById('sketches-pagination');
             paginationDiv.innerHTML = '';
             for (let i = 0; i < 10; i++) {
@@ -1190,13 +1237,11 @@
             const list = document.getElementById('sketches-list');
             list.innerHTML = '';
 
-            // Get current page's sketches
             const pageSketches = story.sketches[currentSketchesPage] || [];
 
             pageSketches.forEach((sketch, idx) => {
                 const card = document.createElement('div');
                 card.className = "card";
-                // Unique HTML ID for toggling this specific card's image block
                 const elementId = `${currentSketchesPage}-${idx}`;
                 card.innerHTML = `
                     <h3 style="cursor: pointer; color: var(--accent-color);" onclick="toggleSketchPreview('${elementId}')">
@@ -1225,7 +1270,6 @@
             if (!title) return;
             const summary = prompt("Enter a small summary:");
 
-            // Hidden file uploader trick
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
             fileInput.accept = 'image/*';
@@ -1251,7 +1295,6 @@
             }
         }
 
-        // Initialize App on load
         window.onload = loadData;
     </script>
 </body>
