@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MELBOL Story Planner</title>
+    <title>MELBOL Story Planner v2</title>
     <style>
         :root {
             --bg-color: #121214;
@@ -13,6 +13,7 @@
             --text-muted: #a0a0b0;
             --border-color: #2e2e36;
             --danger-color: #cf6679;
+            --success-color: #03dac6;
         }
 
         * {
@@ -75,6 +76,7 @@
             overflow-y: auto;
             display: flex;
             flex-direction: column;
+            position: relative;
         }
 
         .header-bar {
@@ -169,34 +171,156 @@
             margin-top: 10px;
         }
 
-        /* Timeline Styles */
-        .timeline-container {
-            border-left: 3px solid var(--accent-color);
-            padding-left: 20px;
-            margin-left: 10px;
+        /* Physical Timeline Styles */
+        .timeline-wrapper {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            background: var(--panel-bg);
+            border-radius: 8px;
         }
 
-        .timeline-item {
+        .timeline-track {
             position: relative;
-            margin-bottom: 25px;
+            width: 100%;
+            height: 4px;
+            background: var(--border-color);
+            margin: 50px 0;
         }
 
-        .timeline-item::before {
-            content: '';
+        .timeline-marker {
             position: absolute;
-            left: -27px;
-            top: 5px;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
+            top: -10px;
+            width: 24px;
+            height: 24px;
             background: var(--accent-color);
+            border-radius: 50%;
+            cursor: pointer;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .timeline-marker:hover {
+            background: var(--success-color);
+        }
+
+        .timeline-marker span {
+            color: black;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        .timeline-marker-label {
+            position: absolute;
+            top: 25px;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        /* Character Modal (Detailed Planner) */
+        .char-planner-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            overflow-y: auto;
+        }
+
+        .char-planner-modal.active {
+            display: flex;
+        }
+
+        .char-planner-content {
+            background: #1e1e24;
+            color: var(--text-color);
+            width: 90%;
+            max-width: 900px;
+            max-height: 85vh;
+            border-radius: 12px;
+            padding: 30px;
+            border: 1px solid var(--border-color);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            font-size: 2rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        .araki-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .araki-field {
+            margin-bottom: 10px;
+        }
+
+        .araki-field label {
+            display: block;
+            color: var(--accent-color);
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        /* Collapsible Arcs */
+        .arc-header {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .arc-header:hover {
+            background: #25252b;
+        }
+
+        .arc-chapters-content {
+            display: none;
+            padding: 15px;
+            border-left: 3px solid var(--border-color);
+            margin-top: 10px;
+        }
+
+        .arc-chapters-content.active {
+            display: block;
+        }
+
+        .edit-controls {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
         }
     </style>
 </head>
 <body>
 
     <div id="sidebar">
-        <div class="logo">MELBOL Planner</div>
+        <div class="logo">MELBOL Planner v2</div>
         <button class="nav-btn active" onclick="switchSection('story')">1. Stories</button>
         <button class="nav-btn" onclick="switchSection('characters')">2. Characters</button>
         <button class="nav-btn" onclick="switchSection('worldbuilding')">3. Worldbuilding</button>
@@ -212,7 +336,7 @@
             <div>
                 <label for="active-story-select">Active Story: </label>
                 <select id="active-story-select" class="story-selector" onchange="changeActiveStory(this.value)">
-                    </select>
+                </select>
             </div>
         </div>
 
@@ -232,7 +356,7 @@
             <h2>Worldbuilding</h2>
             
             <h3>Map & Geography</h3>
-            <input type="file" id="map-upload" accept="image/*" onchange="uploadMap(event)" style="margin-top: 10px;">
+            <input type="file" id="map-upload" accept="image/*" onchange="uploadMap(event)">
             <div id="map-preview" style="margin: 15px 0;"></div>
 
             <h3>Factions / Kingdoms / Crews</h3>
@@ -242,15 +366,17 @@
 
         <div id="section-chapters" class="section-panel">
             <h2>Arcs & Chapters</h2>
-            <p style="color: var(--text-muted); margin-bottom: 15px;">Max 30 arcs, 20 chapters per arc.</p>
+            <p style="color: var(--text-muted); margin-bottom: 15px;">Max 30 arcs, 20 chapters per arc. Click an arc to expand/collapse chapters.</p>
             <button class="primary-btn" onclick="addArc()">Create New Arc</button>
             <div id="arcs-list"></div>
         </div>
 
         <div id="section-timeline" class="section-panel">
-            <h2>Visual Story Timeline</h2>
+            <h2>Physical Story Timeline</h2>
+            <p style="color: var(--text-muted);">View historic events and major arc starts. Markers are ordered sequentially.</p>
             <button class="primary-btn" onclick="addTimelineEvent()">Add Historic Event</button>
-            <div id="timeline-list" class="timeline-container"></div>
+            <div id="physical-timeline-container" class="timeline-wrapper">
+                </div>
         </div>
 
         <div id="section-themes" class="section-panel">
@@ -266,6 +392,73 @@
         </div>
     </div>
 
+    <div id="char-planner-modal" class="char-planner-modal">
+        <div class="char-planner-content">
+            <button class="close-modal" onclick="closeCharModal()">×</button>
+            <div id="modal-char-image-preview"></div>
+            <input type="file" accept="image/*" id="modal-char-image-input" onchange="updateCharImgModal(event)" style="margin-top: 10px;">
+            <h1 id="modal-char-name" style="margin-top: 15px; color: var(--accent-color);">Character Name</h1>
+            
+            <div class="araki-grid">
+                <div class="araki-field">
+                    <label>Full Real Name</label>
+                    <input type="text" id="araki-full-name" onchange="updateCharData('full_name', this.value)">
+                </div>
+                <div class="araki-field">
+                    <label>Role</label>
+                    <select id="araki-role" onchange="updateCharData('role', this.value)">
+                        <option value="Protagonist">Protagonist</option>
+                        <option value="Antagonist">Antagonist</option>
+                        <option value="Side Character">Side Character</option>
+                    </select>
+                </div>
+                <div class="araki-field">
+                    <label>Age & DOB</label>
+                    <input type="text" id="araki-age" onchange="updateCharData('age', this.value)">
+                </div>
+                <div class="araki-field">
+                    <label>Gender/Sex</label>
+                    <input type="text" id="araki-gender" onchange="updateCharData('gender', this.value)">
+                </div>
+                <div class="araki-field">
+                    <label>Main Motivation</label>
+                    <input type="text" id="araki-motivation" onchange="updateCharData('motivation', this.value)">
+                </div>
+                <div class="araki-field">
+                    <label>Deepest Fear</label>
+                    <input type="text" id="araki-fear" onchange="updateCharData('fear', this.value)">
+                </div>
+                
+                <div class="araki-field">
+                    <label>Habits (Araki 100 Questions Item)</label>
+                    <textarea id="araki-habits" onchange="updateCharData('habits', this.value)"></textarea>
+                </div>
+                <div class="araki-field">
+                    <label>Oddities / Quirks</label>
+                    <textarea id="araki-quirks" onchange="updateCharData('quirks', this.value)"></textarea>
+                </div>
+                <div class="araki-field">
+                    <label>Backstory / Origin</label>
+                    <textarea id="araki-backstory" onchange="updateCharData('backstory', this.value)"></textarea>
+                </div>
+                <div class="araki-field">
+                    <label>Relationship with Others</label>
+                    <textarea id="araki-relationships" onchange="updateCharData('relationships', this.value)"></textarea>
+                </div>
+                 <div class="araki-field">
+                    <label>Specific Skills / Powers (Araki Style: Stand/Ability Details)</label>
+                    <textarea id="araki-powers" onchange="updateCharData('powers', this.value)"></textarea>
+                </div>
+                <div class="araki-field">
+                    <label>Speech Patterns</label>
+                    <input type="text" id="araki-speech" onchange="updateCharData('speech', this.value)">
+                </div>
+            </div>
+            
+            <button class="delete-btn" style="margin-top: 30px;" onclick="deleteCurrentCharacter()">Delete This Character</button>
+        </div>
+    </div>
+
     <script>
         // Database template 
         let appData = {
@@ -273,13 +466,14 @@
             stories: []
         };
 
+        let currentCharacterIdx = null; // Track character in modal
+
         // Load data from localStorage
         function loadData() {
-            const saved = localStorage.getItem('melbol_story_planner_data');
+            const saved = localStorage.getItem('melbol_story_planner_data_v2');
             if (saved) {
                 appData = JSON.parse(saved);
             } else {
-                // Seed empty initial story
                 appData.stories = [{
                     title: "My First Story",
                     genre: "Fantasy",
@@ -300,7 +494,7 @@
         }
 
         function saveData() {
-            localStorage.setItem('melbol_story_planner_data', JSON.stringify(appData));
+            localStorage.setItem('melbol_story_planner_data_v2', JSON.stringify(appData));
         }
 
         function getActiveStory() {
@@ -336,7 +530,6 @@
             document.getElementById('current-section-title').textContent = sectionId.charAt(0).toUpperCase() + sectionId.slice(1);
         }
 
-        // Image helper to handle local file upload as base64
         function handleImageUpload(event, callback) {
             const file = event.target.files[0];
             const reader = new FileReader();
@@ -344,6 +537,67 @@
                 callback(reader.result);
             }
             if (file) reader.readAsDataURL(file);
+        }
+
+        /* ------------------ MODAL LOGIC ------------------ */
+        function openCharModal(idx) {
+            currentCharacterIdx = idx;
+            const char = getActiveStory().characters[idx];
+            document.getElementById('modal-char-name').textContent = char.name || "Unnamed Character";
+            
+            // Set image preview
+            const imgPrev = document.getElementById('modal-char-image-preview');
+            if (char.img) {
+                imgPrev.innerHTML = `<img src="${char.img}" style="max-width: 100%; height: 200px; object-fit: cover; border-radius: 8px;">`;
+            } else {
+                imgPrev.innerHTML = `<p style="color: var(--text-muted)">No Image</p>`;
+            }
+
+            // Populate all Araki fields (handling missing fields dynamically)
+            const fields = ['full_name', 'age', 'gender', 'motivation', 'fear', 'habits', 'quirks', 'backstory', 'relationships', 'powers', 'speech'];
+            fields.forEach(field => {
+                document.getElementById(`araki-${field.replace('_','-')}`).value = char[field] || '';
+            });
+
+            document.getElementById('araki-role').value = char.role || 'Side Character';
+            
+            document.getElementById('char-planner-modal').classList.add('active');
+        }
+
+        function closeCharModal() {
+            document.getElementById('char-planner-modal').classList.remove('active');
+            currentCharacterIdx = null;
+            renderCharacters(); // Refresh main list
+        }
+
+        function updateCharData(field, value) {
+            if (currentCharacterIdx === null) return;
+            getActiveStory().characters[currentCharacterIdx][field] = value;
+            saveData();
+        }
+
+        function updateCharImgModal(event) {
+            handleImageUpload(event, (base64Img) => {
+                if (currentCharacterIdx === null) return;
+                getActiveStory().characters[currentCharacterIdx].img = base64Img;
+                saveData();
+                openCharModal(currentCharacterIdx); // Re-open to refresh preview
+            });
+        }
+
+        function deleteCurrentCharacter() {
+            if (currentCharacterIdx === null) return;
+            if (confirm("Are you sure you want to delete this character?")) {
+                getActiveStory().characters.splice(currentCharacterIdx, 1);
+                saveData();
+                closeCharModal();
+            }
+        }
+
+        /* ------------------ COLLAPSIBLE LOGIC (Arcs) ------------------ */
+        function toggleArcChapters(idx) {
+            const content = document.getElementById(`arc-${idx}-chapters-content`);
+            content.classList.toggle('active');
         }
 
         /* ------------------ SECTION RENDERING ------------------ */
@@ -358,7 +612,7 @@
             renderIdeas();
         }
 
-        // 1. Stories
+        // 1. Stories (UNCHANGED)
         function renderStories() {
             const list = document.getElementById('stories-list');
             list.innerHTML = '';
@@ -418,7 +672,7 @@
             }
         }
 
-        // 2. Characters
+        // 2. Characters (NEW MAIN VIEW)
         function renderCharacters() {
             const list = document.getElementById('characters-list');
             list.innerHTML = '';
@@ -429,12 +683,10 @@
                 const card = document.createElement('div');
                 card.className = "card";
                 card.innerHTML = `
-                    <h3>${char.name || "Unnamed Character"}</h3>
+                    <h3 style="cursor: pointer; color: var(--accent-color);" onclick="openCharModal(${idx})">${char.name || "Unnamed Character"}</h3>
                     ${char.img ? `<img src="${char.img}">` : ''}
-                    <input type="file" accept="image/*" onchange="updateCharImg(${idx}, event)" style="margin-top:5px;">
-                    <p><strong>Role:</strong> ${char.role || 'N/A'}</p>
-                    <textarea placeholder="Hirohiko Araki style traits (e.g., Habits, Quirks, Backstory, Fears...)" onchange="updateCharBio(${idx}, this.value)">${char.bio || ''}</textarea>
-                    <button class="delete-btn" onclick="deleteCharacter(${idx})">Delete</button>
+                    <p><strong>Role:</strong> ${char.role || 'Side Character'}</p>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 10px;">Click name for Araki Planner</p>
                 `;
                 list.appendChild(card);
             });
@@ -444,31 +696,13 @@
             const story = getActiveStory();
             const name = prompt("Character Name:");
             if (!name) return;
-            story.characters.push({ name, role: 'Protagonist', bio: '', img: '' });
+            // Basic structure, detailed planner adds the rest
+            story.characters.push({ name, role: 'Side Character', img: '', quirks: '', habits: '', backstory: '' });
             saveData();
             renderCharacters();
         }
 
-        function updateCharImg(idx, event) {
-            handleImageUpload(event, (base64Img) => {
-                getActiveStory().characters[idx].img = base64Img;
-                saveData();
-                renderCharacters();
-            });
-        }
-
-        function updateCharBio(idx, text) {
-            getActiveStory().characters[idx].bio = text;
-            saveData();
-        }
-
-        function deleteCharacter(idx) {
-            getActiveStory().characters.splice(idx, 1);
-            saveData();
-            renderCharacters();
-        }
-
-        // 3. Worldbuilding (Factions & Maps)
+        // 3. Worldbuilding (UNCHANGED)
         function renderWorldbuilding() {
             const story = getActiveStory();
             if (!story) return;
@@ -523,7 +757,7 @@
             renderWorldbuilding();
         }
 
-        // 4. Chapters & Arcs
+        // 4. Chapters & Arcs (NEW COLLAPSIBLE AND EDITABLE)
         function renderChapters() {
             const list = document.getElementById('arcs-list');
             list.innerHTML = '';
@@ -535,22 +769,39 @@
                 arcDiv.className = "card";
                 arcDiv.style.marginBottom = "20px";
                 arcDiv.innerHTML = `
-                    <h3>Arc ${arcIdx + 1}: ${arc.title}</h3>
-                    <p style="margin-bottom: 10px;"><em>${arc.summary}</em></p>
-                    <button class="primary-btn" style="padding: 5px 10px; font-size: 0.8rem;" onclick="addChapter(${arcIdx})">+ Add Chapter</button>
-                    <button class="delete-btn" style="margin-left: 10px;" onclick="deleteArc(${arcIdx})">Delete Arc</button>
-                    <div id="arc-${arcIdx}-chapters" style="margin-top: 15px; padding-left: 15px; border-left: 2px solid var(--border-color);"></div>
+                    <div class="arc-header" onclick="toggleArcChapters(${arcIdx})">
+                        <h3>Arc ${arcIdx + 1}: ${arc.title}</h3>
+                        <span style="color: var(--text-muted);">(Click to toggle chapters)</span>
+                    </div>
+                    
+                    <p style="margin: 10px 0; font-style: italic;">${arc.summary}</p>
+                    
+                    <div class="edit-controls">
+                        <button class="primary-btn" style="padding: 5px 10px; font-size: 0.8rem; margin: 0;" onclick="editArc(${arcIdx})">Edit Arc Detail</button>
+                        <button class="primary-btn" style="padding: 5px 10px; font-size: 0.8rem; margin: 0;" onclick="addChapter(${arcIdx})">+ Add Chapter</button>
+                        <button class="delete-btn" style="margin: 0; padding: 5px 10px;" onclick="deleteArc(${arcIdx})">Delete Arc</button>
+                    </div>
+
+                    <div id="arc-${arcIdx}-chapters-content" class="arc-chapters-content">
+                        </div>
                 `;
                 list.appendChild(arcDiv);
 
-                const chapList = document.getElementById(`arc-${arcIdx}-chapters`);
+                const chapList = document.getElementById(`arc-${arcIdx}-chapters-content`);
                 arc.chapters.forEach((chap, chapIdx) => {
                     const chapDiv = document.createElement('div');
                     chapDiv.style.margin = "10px 0";
+                    chapDiv.style.padding = "10px";
+                    chapDiv.style.background = "#25252b";
+                    chapDiv.style.borderRadius = "4px";
                     chapDiv.innerHTML = `
                         <strong>Ch ${chapIdx + 1}:</strong> ${chap.title} 
-                        ${chap.link ? `<a href="${chap.link}" target="_blank" style="color: var(--accent-color); margin-left: 10px;">[Google Doc/Slide Link]</a>` : ''}
-                        <button class="delete-btn" style="padding: 2px 6px; font-size:0.7rem; margin-left:10px;" onclick="deleteChapter(${arcIdx}, ${chapIdx})">X</button>
+                        ${chap.link ? `<a href="${chap.link}" target="_blank" style="color: var(--accent-color); margin-left: 10px;">[Doc]</a>` : '<span style="color:var(--text-muted); margin-left: 10px;">(No Link)</span>'}
+                        
+                        <div class="edit-controls" style="font-size: 0.8rem;">
+                            <button style="color: var(--accent-color); background: none; border: none; cursor: pointer;" onclick="editChapter(${arcIdx}, ${chapIdx})">Edit</button>
+                            <button style="color: var(--danger-color); background: none; border: none; cursor: pointer;" onclick="deleteChapter(${arcIdx}, ${chapIdx})">X</button>
+                        </div>
                     `;
                     chapList.appendChild(chapDiv);
                 });
@@ -565,9 +816,21 @@
             }
             const title = prompt("Arc Title:");
             if (!title) return;
-            const summary = prompt("Arc Summary:");
+            const summary = prompt("Arc Summary (can be updated later):");
 
             story.arcs.push({ title, summary, chapters: [] });
+            saveData();
+            renderChapters();
+        }
+
+        function editArc(idx) {
+            const arc = getActiveStory().arcs[idx];
+            const newTitle = prompt("Edit Arc Title:", arc.title);
+            if (!newTitle) return;
+            const newSummary = prompt("Edit Arc Summary:", arc.summary);
+            
+            arc.title = newTitle;
+            arc.summary = newSummary;
             saveData();
             renderChapters();
         }
@@ -581,9 +844,21 @@
             }
             const title = prompt("Chapter Title:");
             if (!title) return;
-            const link = prompt("Paste link to Google Doc or Slide:");
+            const link = prompt("Link to Google Doc (optional):");
 
             arc.chapters.push({ title, link });
+            saveData();
+            renderChapters();
+        }
+
+        function editChapter(arcIdx, chapIdx) {
+            const chap = getActiveStory().arcs[arcIdx].chapters[chapIdx];
+            const newTitle = prompt("Edit Chapter Title:", chap.title);
+            if (!newTitle) return;
+            const newLink = prompt("Edit Google Doc Link (or leave blank to remove):", chap.link || '');
+            
+            chap.title = newTitle;
+            chap.link = newLink; // Allow empty
             saveData();
             renderChapters();
         }
@@ -600,24 +875,62 @@
             renderChapters();
         }
 
-        // 5. Timeline
+        // 5. Physical Timeline (NEW PHYSICAL LAYOUT)
         function renderTimeline() {
-            const list = document.getElementById('timeline-list');
-            list.innerHTML = '';
+            const container = document.getElementById('physical-timeline-container');
+            container.innerHTML = '';
             const story = getActiveStory();
             if (!story) return;
 
-            story.timeline.sort((a,b) => a.order - b.order);
+            const events = story.timeline || [];
+            // Sort events by order (sequential)
+            events.sort((a,b) => a.order - b.order);
 
-            story.timeline.forEach((event, idx) => {
-                const item = document.createElement('div');
-                item.className = "timeline-item";
-                item.innerHTML = `
-                    <h4>${event.title} (Time Order: ${event.order})</h4>
-                    <p>${event.desc}</p>
-                    <button class="delete-btn" onclick="deleteTimelineEvent(${idx})">Delete Event</button>
+            if (events.length === 0) {
+                container.innerHTML = `<p style="color:var(--text-muted); text-align: center;">No timeline events added yet.</p>`;
+                return;
+            }
+
+            const track = document.createElement('div');
+            track.className = 'timeline-track';
+            container.appendChild(track);
+
+            const numEvents = events.length;
+            const stepPercent = numEvents > 1 ? (100 / (numEvents - 1)) : 0;
+
+            events.forEach((event, idx) => {
+                // Calculate position based on relative order (for physical display)
+                let position;
+                if (numEvents === 1) {
+                    position = 50; // Center single event
+                } else {
+                    position = idx * stepPercent;
+                }
+
+                const marker = document.createElement('div');
+                marker.className = 'timeline-marker';
+                marker.style.left = `${position}%`;
+                marker.innerHTML = `<span>${idx + 1}</span>`;
+                marker.title = `${event.title} (Order: ${event.order})`; // Tooltip
+
+                const label = document.createElement('div');
+                label.className = 'timeline-marker-label';
+                label.textContent = event.title;
+                marker.appendChild(label);
+
+                // Add physical marker to track
+                track.appendChild(marker);
+
+                // Add delete option separately under track for easier access
+                const deleteDiv = document.createElement('div');
+                deleteDiv.style.marginTop = "60px";
+                deleteDiv.style.borderTop = "1px solid var(--border-color)";
+                deleteDiv.style.paddingTop = "10px";
+                deleteDiv.innerHTML = `
+                    <p style="margin-bottom: 5px;"><strong>${event.title} (Order ${event.order})</strong>: ${event.desc}</p>
+                    <button class="delete-btn" style="padding: 2px 6px; font-size:0.7rem; margin-bottom:15px;" onclick="deleteTimelineEvent(${idx})">Delete</button>
                 `;
-                list.appendChild(item);
+                container.appendChild(deleteDiv);
             });
         }
 
@@ -625,9 +938,11 @@
             const story = getActiveStory();
             const title = prompt("Event Title:");
             if (!title) return;
-            const desc = prompt("Event Description:");
-            const order = parseFloat(prompt("Enter order number (e.g. 1, 2, 2.5 for sequence):") || "1");
+            const desc = prompt("Event Description / Major Arc Milestone:");
+            // Simplified order for physical display
+            const order = parseFloat(prompt("Sequence Order (1, 2, 2.5, 3...):") || "1");
 
+            if (!story.timeline) story.timeline = []; // Ensure it exists
             story.timeline.push({ title, desc, order });
             saveData();
             renderTimeline();
@@ -639,7 +954,7 @@
             renderTimeline();
         }
 
-        // 6. Themes
+        // 6. Themes (UNCHANGED)
         function renderThemes() {
             const list = document.getElementById('themes-list');
             list.innerHTML = '';
@@ -675,7 +990,7 @@
             renderThemes();
         }
 
-        // 7. Ideas
+        // 7. Ideas (UNCHANGED)
         function renderIdeas() {
             const list = document.getElementById('ideas-list');
             list.innerHTML = '';
